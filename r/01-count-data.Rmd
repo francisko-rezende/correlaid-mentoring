@@ -1,0 +1,207 @@
+---
+title: "Count Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(broom)
+```
+
+```{r loading-data}
+tibble::tribble(
+      ~pH,   ~Biomassa, ~Especies,
+   "alto", 0.469297221,       30L,
+   "alto", 1.730870426,       39L,
+   "alto", 2.089778481,       44L,
+   "alto", 3.925787136,       35L,
+   "alto", 4.366792653,       25L,
+   "alto", 5.481974683,       29L,
+   "alto",  6.68468591,       23L,
+   "alto", 7.511650634,       18L,
+   "alto", 8.132202505,       19L,
+   "alto", 9.572128635,       12L,
+   "alto", 0.086653665,       39L,
+   "alto", 1.236973905,       35L,
+   "alto", 2.532043235,       30L,
+   "alto", 3.407941525,       30L,
+   "alto", 4.605045962,       33L,
+   "alto", 5.367717087,       20L,
+   "alto", 6.560842148,       26L,
+   "alto", 7.242062143,       36L,
+   "alto", 8.503632993,       18L,
+   "alto", 9.390953422,        7L,
+   "alto",  0.76488801,       39L,
+   "alto", 1.176470196,       39L,
+   "alto", 2.325120818,       34L,
+   "alto", 3.222882069,       31L,
+   "alto", 4.136129299,       24L,
+   "alto", 5.137176521,       25L,
+   "alto", 6.421938112,       20L,
+   "alto", 7.065526382,       21L,
+   "alto", 8.745929177,       12L,
+   "alto", 9.981770129,       11L,
+  "medio", 0.175762697,       29L,
+  "medio", 1.376778303,       30L,
+  "medio", 2.551042556,       21L,
+  "medio",  3.00027434,       18L,
+  "medio", 4.905623865,       13L,
+  "medio", 5.343305425,       13L,
+  "medio",         7.7,        9L,
+  "medio", 0.553688929,       24L,
+  "medio", 1.990296437,       26L,
+  "medio",  2.91263671,       26L,
+  "medio", 3.216451335,       20L,
+  "medio", 4.979884675,       21L,
+  "medio", 5.658722899,       15L,
+  "medio",         8.1,        8L,
+  "medio", 0.739569861,       31L,
+  "medio", 1.526934202,       28L,
+  "medio", 2.232122387,       18L,
+  "medio", 3.885288176,       16L,
+  "medio", 4.626505411,       19L,
+  "medio", 5.120968439,       20L,
+  "medio",         8.3,        6L,
+  "medio", 0.511278577,       25L,
+  "medio", 1.478232688,       23L,
+  "medio", 2.934558004,       25L,
+  "medio",  3.50548891,       22L,
+  "medio", 4.617909137,       15L,
+  "medio", 5.696963821,       11L,
+  "medio", 6.093016876,       17L,
+  "medio", 0.730062798,       24L,
+  "medio", 1.158068376,       27L,
+  "baixo", 0.100847904,       18L,
+  "baixo", 0.138596089,       19L,
+  "baixo", 0.863515079,       15L,
+  "baixo", 1.292919034,       19L,
+  "baixo",  2.46916355,       12L,
+  "baixo", 2.366553089,       11L,
+  "baixo", 2.629217082,       15L,
+  "baixo", 3.252286524,        9L,
+  "baixo", 4.417276192,        3L,
+  "baixo", 4.780810391,        2L,
+  "baixo", 0.050175289,       18L,
+  "baixo", 0.482836915,       19L,
+  "baixo", 0.652667143,       13L,
+  "baixo", 1.555336555,        9L,
+  "baixo", 1.671638196,        8L,
+  "baixo", 2.870053904,       14L,
+  "baixo", 2.510720525,       13L,
+  "baixo", 3.497603852,        4L,
+  "baixo", 3.678761859,        8L,
+  "baixo", 4.831542449,        2L,
+  "baixo", 0.289722659,       17L,
+  "baixo", 0.077560095,       14L,
+  "baixo", 1.429020407,       15L,
+  "baixo", 1.120740925,       17L,
+  "baixo", 1.507953837,        9L,
+  "baixo", 2.325963179,        8L,
+  "baixo", 2.995705821,       12L,
+  "baixo", 3.538199085,       14L,
+  "baixo", 4.364541206,        7L,
+  "baixo", 4.870507888,        3L
+  ) %>% 
+  dplyr::rename(biomass = Biomassa,
+                spp_num = Especies,
+                ph = pH) %>% 
+  dplyr::mutate(ph = case_when(ph == 'alto' ~ 'high',
+                               ph == 'medio' ~ 'medium',
+                               T ~ 'low')) -> spp_richness
+
+```
+
+
+## Fitting the model
+
+```{r}
+m1 <- glm(spp_num ~ ph * biomass, data = spp_richness, family = poisson)
+```
+
+## Plotting residual analysis
+
+```{r}
+par(mfrow = c(2,2))
+plot(m1)
+par(mfrow = c(1,1))
+```
+
+## Moving on to the actual analysis
+
+```{r}
+anova(m1, test = 'Chi')
+```
+
+Since all terms seem to be statistically significant (including the interaction)
+seems like this model is a good candidate when it comes to its explanatory 
+terms.
+
+I'll do a `drop1` call just for the fun of it though :)
+
+```{r}
+drop1(m1, test = 'Chi')  # Remember to use Chi when comparing models!
+```
+
+As the ANOVA above suggested, removing any term leads to a decrease in the model's explanatory power (a statistically significant one too!) and thus we stick to the "full" model.
+
+### Checking for overdispersion
+
+GLMs (?) have an important assumption: they assume the deviance to the residual degrees of freedom ration to be 1. If this ratio is significantly larger than 1 then we say the model is overdispersed.
+
+Here's how I'd check for overdispersion.
+
+```{r}
+m1$deviance / m1$df.residual  # close enough to 1! No need to use quasi family
+```
+### Plotting and interpreting the model coefs
+
+```{r}
+spp_richness %>% 
+  ggplot(aes(x = biomass, y = spp_num, group = ph, color = ph)) +
+  geom_point() +
+  stat_smooth(method = 'glm', method.args = list(family = 'poisson'), se = F)
+```
+
+And now for the model coefficients:
+
+```{r}
+summary(m1)
+```
+
+The coefficients above are still in log form, to put in the same scale as the data you can do the following:
+
+```{r}
+m1$family$linkinv(coef(m1)[1])  # this back transforms the intercept
+
+exp(coef(m1)[1])  # this another way of back transforming the intercept
+
+exp(coef(m1)[2]) * exp(coef(m1)[1])  # this does it for low pH
+
+m1$family$linkinv(coef(m1)[1] + coef(m1)[2])  # also for low pH
+```
+
+The "slope" coefficients describe multiplicative changes in the response variable (eg, changing one unit in the explanatory variable results in a change of the current value times the coefficient)
+
+
+```{r}
+anova(m1, test = 'Chi')
+```
+
+
+## Questions I'd like to discuss:
+
++ do you have a rule of thumb for determining whether something is overdispersed
+or not?
+
++ what's the difference between log transforming your counts and using a glm?
+I suppose the question here is what's the different between using link functions
+and transforming your data?
+
++ Is it true that you can't interpret results from transformed data on the "natural 
+scale" (i.e., the relationship between the variables only makes sense if you use 
+the transformed values)
