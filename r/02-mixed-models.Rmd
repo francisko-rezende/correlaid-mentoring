@@ -1,0 +1,149 @@
+---
+title: "Mixed models"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# try this package later nlme; they can do different things too!
+
+list_of_packages <- c("tidyverse", "here", "lme4")
+new_packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
+if(length(new_packages)) install.packages(new_packages)
+
+library(tidyverse)
+library(here)
+library(lme4)
+```
+
+```{r}
+# metabolism <- readr::read_csv(here::here("data", "02-wildmousemetabolism.csv"))
+
+dragons <- readr::read_csv(here::here("data", "dragons.csv")) %>% 
+  dplyr::select(-X)
+
+dragons
+```
+
+
+
+```{r}
+dragons
+
+m1 <- glm(testScore ~ bodyLength, data = dragons)
+
+summary(m1)
+
+ggplot(data = dragons, aes(x = bodyLength, y = testScore, color = mountainRange)) +
+  geom_point() +
+  facet_grid(site ~ mountainRange)
+
+ggplot(dragons, aes(x = bodyLength, y = testScore, color = site)) +
+  geom_point() +
+  facet_wrap(~ mountainRange)
+```
+
+
+
+```{r}
+mixed_m1 <- lmer(testScore ~ bodyLength + (1 | mountainRange), data = dragons)
+
+summary(mixed_m1)
+
+anova(mixed_m1)
+```
+```{r}
+m2 <- lm(testScore ~ bodyLength + mountainRange, data=dragons)
+summary(m2)
+sd(coef(m2)[3:9])
+```
+
++ instead of having a parameter for each group, mixed models estimate the variability
+coming from these potential parameters
+
+```{r}
+ranef(mixed_m1)  # these are post hoc estimates for these mountain ranges
+
+confint(mixed_m1)
+```
+
+
+
+```{r}
+mixed_null <- update(mixed_m1, .~.-bodyLength)
+
+summary(mixed_null)
+
+anova(mixed_m1, mixed_null)
+
+# look up function to run likelihood ratio tests
+```
+
++ even though the fixed effects do not give you a straight p value you can infer
+it by looking at the t value you find in the summary. If the value is above 2 it
+is likely significant considering an alpha of .05 and if it's above 3 it is likely
+significant considering an alpha of .01;
+
++ t value + estimate divided by the standard error;
+
+
+
+
+
+
+
+
+
+
+## Dragons
+
+
+### Question
+
+Is the test score affected by body length?
+
+### Fitting the model
+
+```{r}
+dragons_m1 <- lmer(testScore ~ bodyLength + (1 | mountainRange) + (1 | site), data = dragons)
+```
+
+### Looking at residuals
+
+```{r}
+plot(dragons_m1)
+```
+
+
+```{r}
+summary(dragons_m1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- ## Dataset -->
+
+<!-- "In this example we will look at a dataset containing metabolic rate measured on mice at three different temperatures. measurements on every mouse were repeated three times. We are interested in estimating the change in metabolic rate with temperature, and whether this relationship changes with body mass, sex (male or female). whether the mice were fed on the day of measurements and whether they were using a wheel." -->
+
+<!-- ```{r} -->
+<!-- m1 <- lmer(rmr ~ temp + bm + sex + food + wheel + (1|id) + (1|run) + (1|day), data = metabolism) -->
+
+<!-- m0 <- update(m1, . ~ 1 + (1|id) + (1|run) + (1|day)) -->
+
+<!-- anova(m1, m0) -->
+<!-- ``` -->
